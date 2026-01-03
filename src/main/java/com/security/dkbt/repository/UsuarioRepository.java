@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 
 import com.security.dkbt.entity.UsuarioEntity;
 
-
 public interface UsuarioRepository extends JpaRepository<UsuarioEntity, Long> {
 	
     @Query("""
