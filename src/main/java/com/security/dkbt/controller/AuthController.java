@@ -2,6 +2,7 @@ package com.security.dkbt.controller;
 
 
 import java.util.HashMap;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import com.security.dkbt.dto.LoginTokenResponse;
 import com.security.dkbt.dto.LoginUsuarioRequest;
 import com.security.dkbt.dto.RegistrarUsuarioRequest;
 import com.security.dkbt.dto.UsuarioMeResponse;
+import com.security.dkbt.entity.UsuarioEntity;
 import com.security.dkbt.service.UsuarioService;
 
 import lombok.RequiredArgsConstructor;
@@ -52,12 +54,15 @@ public class AuthController {
     @GetMapping("/me")
     public UsuarioMeResponse me(Authentication authentication) {
 
+        Optional<UsuarioEntity> usuario = usuarioService.obtnerUsuarioPorUsername(authentication.getName());
+
         return new UsuarioMeResponse(
-                authentication.getName(),
-                authentication.getAuthorities()
-                        .stream()
-                        .map(a -> a.getAuthority())
-                        .toList()
+            usuario.get().getId(),
+            usuario.get().getUsername(),
+            usuario.get().getEmpleado().getCodigo(),
+            usuario.get().getEmpleado().getNombre(),
+            usuario.get().getEmpleado().getApellido(),
+            usuario.get().getRol().getNombre()
         );
     }
 }

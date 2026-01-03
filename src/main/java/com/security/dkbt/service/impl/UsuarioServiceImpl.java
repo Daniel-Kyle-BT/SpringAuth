@@ -1,5 +1,8 @@
 package com.security.dkbt.service.impl;
 
+import com.security.dkbt.config.error.SpBusinessException;
+import com.security.dkbt.config.error.SpStatusCode;
+import com.security.dkbt.config.error.SpTechnicalException;
 import com.security.dkbt.dto.RegistrarUsuarioRequest;
 import com.security.dkbt.entity.UsuarioEntity;
 import com.security.dkbt.repository.UsuarioProcedureRepository;
@@ -9,8 +12,8 @@ import com.security.dkbt.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -36,9 +39,17 @@ public class UsuarioServiceImpl implements UsuarioService, UserDetailsService {
 		if (dto.codigoEmpleado() != null) {
 			Map<String, Object> sp1 = usuarioProcedureRepository.validarEmpleadoParaUsuario(dto.codigoEmpleado());
 			Integer status = (Integer) sp1.get("_StatusCode");
-			if (status != 200) {
-				throw new IllegalStateException((String) sp1.get("_Message"));
+			String message = (String) sp1.get("_Message");
+
+			SpStatusCode spCode = SpStatusCode.from(status);
+
+			if (spCode.isError()) {
+			    if (spCode.isBusinessError()) {
+			        throw new SpBusinessException(status, message);
+			    }
+			    throw new SpTechnicalException(status, message);
 			}
+			
 			idEmpleado = ((Number) sp1.get("_ID_EMPLEADO")).longValue();
 			idRol = ((Number) sp1.get("_ID_ROL")).intValue();
 			
@@ -49,8 +60,15 @@ public class UsuarioServiceImpl implements UsuarioService, UserDetailsService {
 		/* ===== SP2: creación ===== */
 		Map<String, Object> sp2 = usuarioProcedureRepository.crearUsuario(idEmpleado, idRol, dto.username(), passwordHash);
 		Integer status = (Integer) sp2.get("_StatusCode");
-		if (status != 200) {
-			throw new IllegalStateException((String) sp2.get("_Message"));
+		String message = (String) sp2.get("_Message");
+
+		SpStatusCode spCode = SpStatusCode.from(status);
+
+		if (spCode.isError()) {
+		    if (spCode.isBusinessError()) {
+		        throw new SpBusinessException(status, message);
+		    }
+		    throw new SpTechnicalException(status, message);
 		}
 	}
 
@@ -66,7 +84,7 @@ public class UsuarioServiceImpl implements UsuarioService, UserDetailsService {
 	}
 
 	@Override
-	public List<UsuarioEntity> listarUsuarios() {
-		return usuarioRepository.findAll();
+	public Optional<UsuarioEntity> obtnerUsuarioPorUsername(String username) {		
+		return usuarioRepository.findAuthUser(username);
 	}
 }

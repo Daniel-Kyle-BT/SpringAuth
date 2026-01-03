@@ -19,4 +19,5 @@ public interface UsuarioRepository extends JpaRepository<UsuarioEntity, Long> {
     		     AND u.estado = true
     		""")
     Optional<UsuarioEntity> findAuthUser(@Param("username") String username);
+    
 }

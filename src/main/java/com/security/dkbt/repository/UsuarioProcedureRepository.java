@@ -1,5 +1,6 @@
 package com.security.dkbt.repository;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.stereotype.Repository;
@@ -29,12 +30,13 @@ public class UsuarioProcedureRepository {
         sp.setParameter("_CODIGO_EMPLEADO", codigoEmpleado);
         sp.execute();
 
-        return Map.of(
-            "_ID_EMPLEADO", sp.getOutputParameterValue("_ID_EMPLEADO"),
-            "_ID_ROL", sp.getOutputParameterValue("_ID_ROL"),
-            "_StatusCode", sp.getOutputParameterValue("_StatusCode"),
-            "_Message", sp.getOutputParameterValue("_Message")
-        );
+        Map<String, Object> result = new HashMap<>();
+        result.put("_ID_EMPLEADO", sp.getOutputParameterValue("_ID_EMPLEADO"));
+        result.put("_ID_ROL", sp.getOutputParameterValue("_ID_ROL"));
+        result.put("_StatusCode", sp.getOutputParameterValue("_StatusCode"));
+        result.put("_Message", sp.getOutputParameterValue("_Message"));
+        
+        return result;
     }
 
     public Map<String, Object> crearUsuario(
@@ -59,9 +61,10 @@ public class UsuarioProcedureRepository {
         sp.setParameter("_PASSWORD_HASH", passwordHash);
         sp.execute();
 
-        return Map.of(
-            "_StatusCode", sp.getOutputParameterValue("_StatusCode"),
-            "_Message", sp.getOutputParameterValue("_Message")
-        );
+        Map<String, Object> result = new HashMap<>();
+        result.put("_StatusCode", sp.getOutputParameterValue("_StatusCode"));
+        result.put("_Message", sp.getOutputParameterValue("_Message"));
+
+        return result;
     }
 }

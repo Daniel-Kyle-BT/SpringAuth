@@ -1,8 +1,10 @@
 package com.security.dkbt.dto;
 
-import java.util.List;
-
 public record UsuarioMeResponse(
-        String username,
-        List<String> roles
-) {}
+	    Long id,
+	    String username,
+	    String codigoEmpleado,
+	    String nombreEmpleado,
+	    String apellidoEmpleado,
+	    String rol
+	) {}
