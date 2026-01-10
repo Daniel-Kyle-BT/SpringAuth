@@ -1,5 +1,7 @@
 package com.security.dkbt.config;
 
+import com.security.dkbt.config.error.security.SecurityAccessDeniedHandler;
+import com.security.dkbt.config.error.security.SecurityAuthEntryPoint;
 import com.security.dkbt.config.jwt.JwtFilter;
 import com.security.dkbt.config.jwt.JwtUtil;
 
@@ -24,38 +26,43 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Bean
-    JwtFilter jwtFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService) {
-        return new JwtFilter(jwtUtil, userDetailsService);
-    }
-    
+	private final SecurityAuthEntryPoint securityAuthEntryPoint;
+	private final SecurityAccessDeniedHandler securityAccessDeniedHandler;
 
-    @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
-        http.
-        	cors(Customizer.withDefaults())
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(sess ->
-            	sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/auth/**").permitAll()
-                    .anyRequest().authenticated()
-            );
+	@Bean
+	JwtFilter jwtFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService) {
+		return new JwtFilter(jwtUtil, userDetailsService);
+	}
+	
+	@Bean
+	JwtAuthenticationFilter jwtAuthenticationFilter(
+	        AuthenticationManager authenticationManager,
+	        JwtUtil jwtUtil
+	) {
+	    return new JwtAuthenticationFilter(authenticationManager, jwtUtil);
+	}
 
-        http.addFilterBefore(
-        		jwtFilter, 
-        		UsernamePasswordAuthenticationFilter.class
-        );
-        return http.build();
-    }
+	@Bean
+	SecurityFilterChain filterChain(HttpSecurity http, JwtFilter jwtFilter,
+			JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+		http.cors(Customizer.withDefaults()).csrf(csrf -> csrf.disable())
+				.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.exceptionHandling(ex -> ex.authenticationEntryPoint(securityAuthEntryPoint)
+						.accessDeniedHandler(securityAccessDeniedHandler))
+				.authorizeHttpRequests(
+						auth -> auth.requestMatchers("/api/auth/**").permitAll().anyRequest().authenticated())
+				.addFilter(jwtAuthenticationFilter)
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+		return http.build();
+	}
 
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-    @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+	@Bean
+	AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+		return config.getAuthenticationManager();
+	}
 }

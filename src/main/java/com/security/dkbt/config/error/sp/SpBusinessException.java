@@ -1,4 +1,4 @@
-package com.security.dkbt.config.error;
+package com.security.dkbt.config.error.sp;
 
 public class SpBusinessException extends StoredProcedureException {
 

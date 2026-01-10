@@ -1,14 +1,15 @@
 package com.security.dkbt.config.error;
 
-import java.net.URI;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.security.dkbt.config.error.sp.SpStatusCode;
+import com.security.dkbt.config.error.sp.StoredProcedureException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -16,67 +17,40 @@ public class GlobalExceptionHandler {
 	/*
 	ERRORES DESDE STORED PROCEDURE
 	*/
-
 	@ExceptionHandler(StoredProcedureException.class)
 	ProblemDetail handleStoredProcedure(StoredProcedureException ex) {
-
 		SpStatusCode spCode = SpStatusCode.from(ex.getSpStatusCode());
-
-		ProblemDetail pd = ProblemDetail.forStatusAndDetail(spCode.getHttpStatus(), ex.getMessage());
-
-		pd.setTitle("Error desde Stored Procedure");
-		pd.setType(URI.create("https://api.dkbt.com/errors/db-sp"));
-		pd.setProperty("origin", "DATABASE");
-		pd.setProperty("spStatusCode", ex.getSpStatusCode());
-
-		return pd;
+		return ProblemBuilder.springProblem(spCode.getHttpStatus(), ex.getMessage(), "db-sp-business-rule", "DATABASE");
 	}
 	
     /*
     ERRORES SPRING / SECURITY
     */	
-	
-    @ExceptionHandler(IllegalStateException.class)
-    ProblemDetail handleIllegalState(IllegalStateException ex) {
-        return springProblem(HttpStatus.BAD_REQUEST, ex.getMessage(), "business-rule");
-    }
+	@ExceptionHandler(IllegalStateException.class)
+	ProblemDetail handleIllegalState(IllegalStateException ex) {
+		return ProblemBuilder.springProblem(HttpStatus.BAD_REQUEST, ex.getMessage(), "spring-business-rule", "SPRING");
+	}
     
-    @ExceptionHandler(UsernameNotFoundException.class)
-    ProblemDetail handleUserNotFound(UsernameNotFoundException ex) {
-        return springProblem(HttpStatus.UNAUTHORIZED, ex.getMessage(), "auth");
+    @ExceptionHandler(ResourceNotFoundException.class)
+    ProblemDetail handleNotFound(ResourceNotFoundException ex) {
+        return ProblemBuilder.springProblem(HttpStatus.NOT_FOUND, ex.getMessage(), "spring-not-found", "SPRING");
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    ProblemDetail handleBadCredentials() {
-        return springProblem(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", "auth");
-    }
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
+		ProblemDetail pd = ProblemBuilder.springProblem(HttpStatus.BAD_REQUEST, "Datos inválidos", "spring-validation",
+				"SPRING");
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
-        String msg = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .findFirst()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .orElse("Datos inválidos");
+		pd.setProperty("errors", ex.getBindingResult().getFieldErrors().stream()
+				.map(err -> Map.of("field", err.getField(), "message", err.getDefaultMessage())).toList());
 
-        ProblemDetail pd = springProblem(HttpStatus.BAD_REQUEST, msg, "validation");
-        pd.setProperty("errors", ex.getBindingResult().getFieldErrors());
-        return pd;
-    }
+		return pd;
+	}
 
-    @ExceptionHandler(Exception.class)
-    ProblemDetail handleGeneric(Exception ex) {
-        return springProblem(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", "internal");
-    }
+	@ExceptionHandler(Exception.class)
+	ProblemDetail handleGeneric(Exception ex) {
+		return ProblemBuilder.springProblem(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", "spring-internal",
+				"SPRING");
+	}
 
-    private ProblemDetail springProblem(HttpStatus status, String detail, String type) {
-    	
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
-        pd.setTitle(status.getReasonPhrase());
-        pd.setType(URI.create("https://api.dkbt.com/errors/spring-" + type));
-        pd.setProperty("origin", "SPRING");
-        
-        return pd;
-    }
 }

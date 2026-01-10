@@ -1,19 +1,7 @@
 package com.security.dkbt.service.impl;
 
-import com.security.dkbt.config.error.SpBusinessException;
-import com.security.dkbt.config.error.SpStatusCode;
-import com.security.dkbt.config.error.SpTechnicalException;
-import com.security.dkbt.dto.RegistrarUsuarioRequest;
-import com.security.dkbt.entity.UsuarioEntity;
-import com.security.dkbt.repository.UsuarioProcedureRepository;
-import com.security.dkbt.repository.UsuarioRepository;
-import com.security.dkbt.service.UsuarioService;
-
-import lombok.RequiredArgsConstructor;
-
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -22,6 +10,19 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import com.security.dkbt.config.error.ResourceNotFoundException;
+import com.security.dkbt.config.error.sp.SpBusinessException;
+import com.security.dkbt.config.error.sp.SpStatusCode;
+import com.security.dkbt.config.error.sp.SpTechnicalException;
+import com.security.dkbt.dto.RegistrarUsuarioRequest;
+import com.security.dkbt.dto.UsuarioMeResponse;
+import com.security.dkbt.entity.UsuarioEntity;
+import com.security.dkbt.repository.UsuarioProcedureRepository;
+import com.security.dkbt.repository.UsuarioRepository;
+import com.security.dkbt.service.UsuarioService;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -42,33 +43,32 @@ public class UsuarioServiceImpl implements UsuarioService, UserDetailsService {
 			String message = (String) sp1.get("_Message");
 
 			SpStatusCode spCode = SpStatusCode.from(status);
-
 			if (spCode.isError()) {
-			    if (spCode.isBusinessError()) {
-			        throw new SpBusinessException(status, message);
-			    }
-			    throw new SpTechnicalException(status, message);
+				if (spCode.isBusinessError()) {
+					throw new SpBusinessException(status, message);
+				}
+				throw new SpTechnicalException(status, message);
 			}
-			
+
 			idEmpleado = ((Number) sp1.get("_ID_EMPLEADO")).longValue();
 			idRol = ((Number) sp1.get("_ID_ROL")).intValue();
-			
+
 		} else {
-			idRol = 1; 
+			idRol = 1;
 		}
 		String passwordHash = passwordEncoder.encode(dto.password());
 		/* ===== SP2: creación ===== */
-		Map<String, Object> sp2 = usuarioProcedureRepository.crearUsuario(idEmpleado, idRol, dto.username(), passwordHash);
+		Map<String, Object> sp2 = usuarioProcedureRepository.crearUsuario(idEmpleado, idRol, dto.username(),
+				passwordHash);
 		Integer status = (Integer) sp2.get("_StatusCode");
 		String message = (String) sp2.get("_Message");
 
 		SpStatusCode spCode = SpStatusCode.from(status);
-
 		if (spCode.isError()) {
-		    if (spCode.isBusinessError()) {
-		        throw new SpBusinessException(status, message);
-		    }
-		    throw new SpTechnicalException(status, message);
+			if (spCode.isBusinessError()) {
+				throw new SpBusinessException(status, message);
+			}
+			throw new SpTechnicalException(status, message);
 		}
 	}
 
@@ -84,7 +84,17 @@ public class UsuarioServiceImpl implements UsuarioService, UserDetailsService {
 	}
 
 	@Override
-	public Optional<UsuarioEntity> obtnerUsuarioPorUsername(String username) {		
-		return usuarioRepository.findAuthUser(username);
+	public UsuarioMeResponse  obtenerMe(String username) {		
+	    UsuarioEntity usuario = usuarioRepository.findAuthUser(username)
+	            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+	        return new UsuarioMeResponse(
+	        		usuario.getId(),
+		            usuario.getUsername(),
+		            usuario.getEmpleado().getCodigo(),
+		            usuario.getEmpleado().getNombre(),
+		            usuario.getEmpleado().getApellido(),
+		            usuario.getRol().getNombre()
+		        );
 	}
 }
