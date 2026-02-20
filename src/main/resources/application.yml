@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: SpringAuth
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/BaseAuthDB
+    username: root
+    password: mysql
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+    open-in-view: false
+
+jwt:
+  secret: my-super-secret-key-that-is-at-least-256-bits-long
+  expiration: 86400000
+
+app:
+  problem:
+    debug: true
