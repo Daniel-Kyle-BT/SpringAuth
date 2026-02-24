@@ -2,7 +2,6 @@ package com.security.dkbt.web.dto.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 public record RegisterRequest(
 		@NotBlank(message = "El usuario es obligatorio")
@@ -14,8 +13,8 @@ public record RegisterRequest(
 	    @Email
 	    String correo,
 	    
-	    @NotNull(message = "El idEmpleado es obligatoria")
-	    Long idEmpleado   
+	    @NotBlank(message = "El codigoEmpleado es obligatorio")
+	    String codigoEmpleado
 ) {}
 
 

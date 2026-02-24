@@ -3,6 +3,7 @@ package com.security.dkbt.infrastructure.persistence.usecase;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.security.dkbt.infrastructure.external.EmpleadoClient;
 import com.security.dkbt.infrastructure.persistence.entity.RolEntity;
 import com.security.dkbt.infrastructure.persistence.entity.UsuarioEntity;
 import com.security.dkbt.infrastructure.persistence.repository.RolRepository;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class RegisterService {
 
+	private final EmpleadoClient empleadoClient;
 	private final UsuarioRepository usuarioRepository;
 	private final RolRepository rolRepository;
 	private final PasswordEncoder passwordEncoder;
@@ -32,20 +34,22 @@ public class RegisterService {
 
 		if (usuarioRepository.existsByCorreo(correo))
 			throw new IllegalStateException("Correo ya existe");
+		
+		var empleado = empleadoClient.obtenerPorCodigo(request.codigoEmpleado());
 
 		RolEntity rol = rolRepository.findByNombre("ROLE_USER").orElseThrow();
 
 		UsuarioEntity user = new UsuarioEntity();
 		user.setUsername(username);
 		user.setCorreo(correo);
-		user.setIdEmpleado(request.idEmpleado());
+		user.setIdEmpleado(empleado.id());
 		user.setRol(rol);
 		user.setPasswordHash(passwordEncoder.encode(request.password()));
 		user.setEstado(true);
 
 		UsuarioEntity userGuard = usuarioRepository.save(user);
 
-		return new RegisterResponse(userGuard.getId(), userGuard.getUsername(), "CREATED");
+		return new RegisterResponse(userGuard.getId(), userGuard.getUsername(), empleado.nombre(), empleado.apellido(), "CREATED");
 	}
 
 }
